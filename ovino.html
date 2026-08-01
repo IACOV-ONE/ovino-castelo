@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ovino Castelo — Gestão de Plantel</title>
+<meta name="description" content="Cadastro de animais, genealogia, pesagens e lançamentos do plantel ovino, com dados no Google Sheets.">
+<meta name="theme-color" content="#0c120d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0c120d;--surface:#131a14;--surface2:#1a231b;--surface3:#232f24;
+  --accent:#8fd694;--accent2:#c99a4e;--danger:#ef4444;--warn:#e0a940;
+  --text:#f2f5ee;--muted:#7c8a78;--border:rgba(255,255,255,0.08);
+  --font:'DM Sans',sans-serif;--mono:'Space Mono',monospace;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--font);display:flex;justify-content:center}
+.app{display:flex;flex-direction:column;width:100%;max-width:440px;height:100vh;height:100dvh;position:relative;overflow:hidden}
+
+/* SPLASH */
+.splash{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;text-align:center;padding:32px;animation:fadeIn .5s ease}
+.splash-logo{font-family:var(--mono);font-size:11px;letter-spacing:4px;color:var(--accent);text-transform:uppercase;opacity:.7}
+.splash-bar{width:60px;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;margin:4px auto}
+.splash-title{font-size:28px;font-weight:600;line-height:1.2}
+.splash-title span{color:var(--accent)}
+.splash-sub{font-size:13px;color:var(--muted);line-height:1.6;max-width:280px}
+
+/* BUTTONS */
+.btn-primary{background:var(--accent);color:#06210c;font-family:var(--font);font-weight:600;font-size:14px;padding:14px 32px;border:none;border-radius:12px;cursor:pointer;width:100%;letter-spacing:.3px;transition:opacity .2s}
+.btn-primary:active{opacity:.8}
+.btn-secondary{background:var(--surface3);color:var(--text);font-family:var(--font);font-weight:500;font-size:13px;padding:10px 16px;border:none;border-radius:10px;cursor:pointer}
+.btn-danger{background:rgba(239,68,68,.12);color:var(--danger);font-family:var(--font);font-weight:600;font-size:13px;padding:10px 16px;border:none;border-radius:10px;cursor:pointer}
+
+/* LOGIN */
+.login{padding:40px 24px;display:flex;flex-direction:column;gap:18px;overflow-y:auto;height:100%;animation:slideUp .4s ease}
+.login-header h2{font-size:22px;font-weight:600}
+.login-header p{font-size:13px;color:var(--muted);margin-top:4px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+.field input,.field select,.field textarea{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;transition:border .2s;-webkit-appearance:none;color-scheme:dark;width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.field textarea{resize:vertical;min-height:70px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.login-footer{font-size:11px;color:var(--muted);text-align:center}
+.login-footer span{color:var(--accent)}
+
+/* TOPBAR */
+.topbar{padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0;gap:10px}
+.topbar-title{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:2px}
+.topbar-back{background:none;border:none;color:var(--accent);cursor:pointer;font-size:22px;padding:0;line-height:1}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#06210c;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding-bottom:88px;-webkit-overflow-scrolling:touch}
+
+/* DASHBOARD */
+.dash-hero{padding:20px;background:var(--surface);margin:16px;border-radius:16px;border:1px solid var(--border)}
+.dash-greeting{font-size:13px;color:var(--muted);margin-bottom:4px}
+.dash-name{font-size:18px;font-weight:600}
+.dash-sub{font-size:13px;color:var(--accent);margin-top:4px}
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px;margin-top:16px}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px}
+.metric-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.metric-value{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--accent)}
+.metric-value.warn{color:var(--warn)}
+.metric-sub{font-size:11px;color:var(--muted);margin-top:6px}
+.section-title{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;padding:20px 16px 10px;display:flex;justify-content:space-between;align-items:center}
+
+/* TASKS / ALERTS */
+.task-item{background:var(--surface);margin:0 16px 8px;border-radius:12px;border:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.task-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.task-dot.critical{background:var(--danger)}
+.task-dot.warn{background:var(--warn)}
+.task-dot.ok{background:var(--accent)}
+.task-info{flex:1;min-width:0}
+.task-name{font-size:14px;font-weight:500}
+.task-sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* COMPLIANCE BARS (reused for distribuição por tipo) */
+.compliance-bars{padding:0 16px;margin-bottom:8px}
+.compliance-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.compliance-name{font-size:13px;min-width:78px}
+.compliance-track{flex:1;height:8px;background:var(--surface3);border-radius:4px;overflow:hidden}
+.compliance-fill{height:100%;border-radius:4px;background:var(--accent)}
+.compliance-pct{font-family:var(--mono);font-size:12px;min-width:52px;text-align:right;color:var(--muted)}
+
+/* SEARCH */
+.search-bar{margin:16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:10px}
+.search-bar input{background:transparent;border:none;color:var(--text);font-family:var(--font);font-size:14px;flex:1;outline:none}
+.search-icon{color:var(--muted);font-size:16px}
+.filter-row{display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto}
+.filter-row select{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;color:var(--text);font-family:var(--font);font-size:12px;outline:none;-webkit-appearance:none;flex-shrink:0}
+
+/* ANIMAL CARD */
+.animal-item{background:var(--surface);margin:0 16px 10px;border-radius:14px;border:1px solid var(--border);padding:16px;cursor:pointer;transition:border .2s}
+.animal-item:active{border-color:rgba(143,214,148,.3)}
+.animal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px}
+.animal-id{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.animal-status{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500;white-space:nowrap}
+.status-ok{background:rgba(143,214,148,.14);color:var(--accent)}
+.status-low{background:rgba(224,169,64,.14);color:var(--warn)}
+.status-crit{background:rgba(239,68,68,.14);color:var(--danger)}
+.status-empty{background:rgba(124,138,120,.15);color:var(--muted)}
+.animal-meta{font-size:12px;color:var(--muted)}
+
+.fab{position:absolute;right:16px;bottom:96px;background:var(--accent);color:#06210c;border:none;width:52px;height:52px;border-radius:50%;font-size:24px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:50}
+
+/* CADASTROS */
+.pill-row{display:flex;gap:8px;padding:16px 16px 4px;overflow-x:auto}
+.pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:8px 16px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.pill.active{background:var(--accent);color:#06210c;border-color:var(--accent);font-weight:600}
+.cad-item{background:var(--surface);margin:0 16px 8px;border-radius:12px;border:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:10px}
+.cad-item-name{font-size:14px;font-weight:500;flex:1;min-width:0}
+.cad-item-desc{font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.icon-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px 8px}
+.icon-btn:hover{color:var(--accent)}
+
+/* LANÇAMENTOS */
+.launch-card{margin:0 16px 12px;border-radius:16px;padding:20px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;gap:16px}
+.launch-icon{font-size:28px;width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--surface2);flex-shrink:0}
+.launch-title{font-size:15px;font-weight:600}
+.launch-sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* ANIMAL DETAIL */
+.detail-hero{margin:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px}
+.detail-badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.badge{font-size:11px;padding:4px 10px;border-radius:20px;background:var(--surface2);color:var(--muted)}
+.detail-title{font-size:20px;font-weight:600;margin-bottom:4px}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.meta-item{background:var(--surface2);border-radius:10px;padding:12px}
+.meta-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.meta-val{font-size:14px;font-weight:500}
+.genea-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px}
+.genea-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer}
+.genea-card.empty{opacity:.5;cursor:default}
+.genea-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.genea-val{font-size:13px;font-weight:600;color:var(--accent)}
+.chart-box{margin:0 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;position:relative;height:180px}
+.peso-row{display:flex;justify-content:space-between;background:var(--surface);margin:0 16px 6px;border-radius:10px;border:1px solid var(--border);padding:10px 14px;font-size:13px}
+.peso-row .p-val{font-family:var(--mono);color:var(--accent);font-weight:700}
+
+/* NAVBAR */
+.navbar{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;padding:8px 0 max(10px, env(safe-area-inset-bottom));z-index:100}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0}
+.nav-icon{font-size:18px;line-height:1}
+.nav-label{font-size:9.5px;letter-spacing:.2px;white-space:nowrap}
+.nav-item.active{color:var(--accent)}
+.nav-item:not(.active){color:var(--muted)}
+
+/* REPORT */
+.report-header{padding:16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.report-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:0 16px 16px}
+.report-summary-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+.report-summary-val{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--accent)}
+.report-summary-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.report-table{padding:0 16px 16px}
+.report-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:6px}
+.report-row-id{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:700}
+.report-row-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.report-share{margin:0 16px 16px;display:flex;gap:8px}
+.report-share-btn{flex:1;padding:12px;border-radius:10px;border:none;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer}
+
+@media print{
+  .topbar,.report-share,.navbar,.report-header button{display:none!important}
+  html,body{overflow:visible!important;height:auto!important}
+  .app{max-width:100%!important;height:auto!important;overflow:visible!important}
+  #main-wrapper .content{overflow:visible!important}
+  body{background:#fff;color:#000}
+  .report-row{border:1px solid #ccc;break-inside:avoid}
+  .report-summary-card{border:1px solid #ccc}
+}
+
+/* SETTINGS */
+.settings-section{padding:0 16px;margin-bottom:8px}
+.settings-section h3{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;padding-top:16px}
+.settings-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:6px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:300}
+.modal-card{background:var(--surface);width:100%;max-width:460px;max-height:88vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:22px;border:1px solid var(--border);animation:slideUp .25s ease}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:14px}
+.modal-body{display:flex;flex-direction:column;gap:12px}
+.modal-actions{display:flex;gap:8px;margin-top:18px}
+.pick-results{max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.pick-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;cursor:pointer}
+.pick-item:hover{border-color:var(--accent)}
+
+.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--surface3);color:var(--text);padding:10px 18px;border-radius:20px;font-size:13px;z-index:400;border:1px solid var(--border);opacity:0;transition:opacity .25s}
+.toast.show{opacity:1}
+.toast.err{color:var(--danger);border-color:var(--danger)}
+
+.hidden{display:none!important}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+/* DESKTOP */
+@media (min-width:768px){
+  html,body{overflow:auto;height:auto}
+  body{align-items:flex-start;background:var(--bg)}
+  .app{max-width:100%;height:100vh;flex-direction:row;overflow:hidden}
+  #screen-splash,#screen-login{max-width:460px;margin:auto;border-radius:20px;border:1px solid var(--border);background:var(--surface);height:auto;min-height:0;padding:40px;align-self:center;box-shadow:0 24px 80px rgba(0,0,0,.5)}
+  #screen-splash{gap:20px}
+  .splash-title{font-size:36px}
+  .btn-primary{max-width:280px;align-self:center}
+  .navbar{position:relative;width:210px;flex-shrink:0;flex-direction:column;border-top:none;border-right:1px solid var(--border);padding:0;height:100vh;justify-content:flex-start;overflow-y:auto;order:-1}
+  .navbar::before{content:'OVINO CASTELO';display:block;font-family:var(--mono);font-size:10px;letter-spacing:3px;color:var(--accent);padding:24px 20px 20px;border-bottom:1px solid var(--border);opacity:.8}
+  .nav-item{flex-direction:row;justify-content:flex-start;gap:12px;padding:14px 20px;border-radius:0;font-size:13px;width:100%}
+  .nav-icon{font-size:17px}
+  .nav-label{font-size:13px;letter-spacing:.3px;font-weight:500}
+  .nav-item.active{background:rgba(143,214,148,.08);border-left:3px solid var(--accent)}
+  .nav-item:not(.active){border-left:3px solid transparent}
+  #screen-app{flex:1;flex-direction:row;min-width:0;overflow:hidden}
+  #main-wrapper{min-width:0;height:100vh;flex:1;display:flex;flex-direction:column}
+  #main-wrapper .topbar{padding:16px 28px 12px;flex-shrink:0}
+  #main-wrapper .content{padding-bottom:24px}
+  .dash-hero{margin:20px 24px 0}
+  .metrics-grid{grid-template-columns:repeat(4,1fr);padding:0 24px;margin-top:20px}
+  .compliance-bars{padding:0 24px}
+  .section-title{padding:20px 24px 10px}
+  .task-item{margin:0 24px 8px}
+  .search-bar{margin:16px 24px}
+  .filter-row{padding:0 24px 12px}
+  #animais-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;padding:0 24px 24px}
+  .animal-item{margin:0}
+  .fab{right:32px;bottom:32px}
+  .launch-card{margin:0 24px 12px}
+  .cad-item{margin:0 24px 8px}
+  .pill-row{padding:16px 24px 4px}
+  .settings-section{padding:0 24px}
+  .genea-grid{padding:0 24px}
+  .chart-box{margin:0 24px}
+  .peso-row{margin:0 24px 6px}
+  .detail-hero{margin:20px 24px}
+  .report-header{padding:20px 24px}
+  .report-summary{padding:0 24px 16px;grid-template-columns:repeat(6,1fr)}
+  .report-table{padding:0 24px 24px}
+  .report-share{margin:0 24px 24px}
+  #screen-animal{height:100vh;overflow:hidden}
+  #screen-animal .content{overflow-y:auto}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SPLASH -->
+  <div id="screen-splash" class="splash">
+    <div class="splash-logo">Ovino Castelo</div>
+    <div class="splash-bar"></div>
+    <div class="splash-title">Plantel controlado.<br><span>Genealogia rastreada.</span></div>
+    <div class="splash-sub">Cadastro de animais, nascimentos, desmamas, mortes e pesagens do rebanho — dados sincronizados com o Google Sheets.</div>
+    <button class="btn-primary" onclick="show('screen-login')">Acessar</button>
+    <div class="login-footer" style="margin-top:8px">v1.0.0 &bull; migrado do sistema OVINO (FoxPro)</div>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="screen-login" class="login hidden">
+    <div class="login-header" style="margin-bottom:8px">
+      <div class="splash-logo" style="font-size:10px;margin-bottom:12px">Ovino Castelo</div>
+      <h2>Identifique-se</h2>
+      <p>Só para saber quem lançou cada registro no plantel.</p>
+    </div>
+    <div class="field">
+      <label>Seu nome</label>
+      <input type="text" id="nome-input" placeholder="ex: Mauricio Iacovone" autocomplete="name">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Entrar</button>
+    <div class="login-footer">Os dados ficam na sua planilha Google &bull; <span>configure em Ajustes</span></div>
+  </div>
+
+  <!-- NAVBAR -->
+  <div class="navbar" id="main-navbar" style="display:none">
+    <div class="nav-item active" id="nav-home" onclick="switchTab('home')">
+      <div class="nav-icon">🏠</div><div class="nav-label">Início</div>
+    </div>
+    <div class="nav-item" id="nav-animais" onclick="switchTab('animais')">
+      <div class="nav-icon">🐑</div><div class="nav-label">Animais</div>
+    </div>
+    <div class="nav-item" id="nav-lanc" onclick="switchTab('lanc')">
+      <div class="nav-icon">📋</div><div class="nav-label">Lanç.</div>
+    </div>
+    <div class="nav-item" id="nav-cad" onclick="switchTab('cad')">
+      <div class="nav-icon">🗂️</div><div class="nav-label">Cadastros</div>
+    </div>
+    <div class="nav-item" id="nav-rel" onclick="switchTab('rel')">
+      <div class="nav-icon">📊</div><div class="nav-label">Relat.</div>
+    </div>
+    <div class="nav-item" id="nav-ajust" onclick="switchTab('ajust')">
+      <div class="nav-icon">⚙️</div><div class="nav-label">Ajustes</div>
+    </div>
+  </div>
+
+  <!-- APP PRINCIPAL -->
+  <div id="screen-app" class="hidden" style="display:none;flex-direction:column;height:100%;position:relative">
+  <div id="main-wrapper">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">DASHBOARD</div>
+      <div class="avatar" id="avatar">–</div>
+    </div>
+
+    <div class="content">
+
+      <!-- TAB: HOME -->
+      <div id="tab-home">
+        <div class="dash-hero">
+          <div class="dash-greeting" id="dash-greeting">Olá.</div>
+          <div class="dash-name">Plantel Ovino Castelo</div>
+          <div class="dash-sub" id="dash-sync">Carregando dados...</div>
+        </div>
+        <div class="metrics-grid" id="metrics-grid">
+          <div class="metric-card"><div class="metric-label">Plantel Total</div><div class="metric-value" id="m-total">—</div></div>
+          <div class="metric-card"><div class="metric-label">Fêmeas</div><div class="metric-value" id="m-femeas">—</div></div>
+          <div class="metric-card"><div class="metric-label">Machos</div><div class="metric-value" id="m-machos">—</div></div>
+          <div class="metric-card"><div class="metric-label">Peso Médio Recente</div><div class="metric-value warn" id="m-peso">—</div></div>
+        </div>
+
+        <div class="section-title">Distribuição por Tipo</div>
+        <div class="compliance-bars" id="dist-tipo"><div style="padding:8px 0;color:var(--muted);font-size:13px">Carregando...</div></div>
+
+        <div class="section-title">Movimentação no Mês</div>
+        <div class="metrics-grid" style="grid-template-columns:1fr 1fr">
+          <div class="metric-card"><div class="metric-label">Nascimentos</div><div class="metric-value" id="m-nasc">—</div></div>
+          <div class="metric-card"><div class="metric-label">Mortes</div><div class="metric-value" style="color:var(--danger)" id="m-mortes">—</div></div>
+        </div>
+
+        <div class="section-title">Sem Pesagem Recente</div>
+        <div id="tasks-list"><div class="task-item"><div class="task-dot ok"></div><div class="task-info"><div class="task-name">Carregando...</div></div></div></div>
+      </div>
+
+      <!-- TAB: ANIMAIS -->
+      <div id="tab-animais" class="hidden">
+        <div class="search-bar">
+          <span class="search-icon">&#9906;</span>
+          <input placeholder="Buscar por código, brinco ou orelha..." id="search-input" oninput="renderAnimaisList()">
+        </div>
+        <div class="filter-row">
+          <select id="filtro-sexo" onchange="renderAnimaisList()"><option value="">Todos os sexos</option></select>
+          <select id="filtro-tipo" onchange="renderAnimaisList()"><option value="">Todos os tipos</option></select>
+          <select id="filtro-destino" onchange="renderAnimaisList()"><option value="">Todos os destinos</option></select>
+        </div>
+        <div id="animais-list"><div style="padding:40px 16px;text-align:center;color:var(--muted);font-size:13px">Carregando...</div></div>
+        <button class="fab" onclick="openNovoAnimalModal()" title="Novo animal">+</button>
+      </div>
+
+      <!-- TAB: LANÇAMENTOS -->
+      <div id="tab-lanc" class="hidden">
+        <div class="section-title">Registrar Evento</div>
+        <div class="launch-card" onclick="openNascimentoModal()">
+          <div class="launch-icon">🐣</div>
+          <div><div class="launch-title">Nascimento</div><div class="launch-sub">Cria um novo animal vinculado à mãe (e opcionalmente ao pai)</div></div>
+        </div>
+        <div class="launch-card" onclick="openDesmamaModal()">
+          <div class="launch-icon">🌱</div>
+          <div><div class="launch-title">Desmama</div><div class="launch-sub">Atualiza a categoria do animal (Borrego/Borrega → Cordeiro/Cordeira)</div></div>
+        </div>
+        <div class="launch-card" onclick="openMorteModal()">
+          <div class="launch-icon">✝️</div>
+          <div><div class="launch-title">Morte</div><div class="launch-sub">Registra o óbito do animal, com data e motivo</div></div>
+        </div>
+      </div>
+
+      <!-- TAB: CADASTROS -->
+      <div id="tab-cad" class="hidden">
+        <div class="pill-row" id="cad-pills"></div>
+        <div id="cad-list"></div>
+        <button class="fab" onclick="openCadastroModal(null)" title="Novo item">+</button>
+      </div>
+
+      <!-- TAB: RELATÓRIO -->
+      <div id="tab-rel" class="hidden">
+        <div class="report-header">
+          <input type="date" id="rel-de" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);flex:1;min-width:130px;color-scheme:dark">
+          <input type="date" id="rel-ate" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);flex:1;min-width:130px;color-scheme:dark">
+          <button class="btn-primary" style="width:auto;padding:10px 18px" onclick="gerarRelatorio()">Gerar</button>
+        </div>
+        <div class="filter-row">
+          <select id="rel-tipo" onchange="gerarRelatorio()"><option value="">Todos os tipos</option></select>
+          <select id="rel-destino" onchange="gerarRelatorio()"><option value="">Todos os destinos</option></select>
+        </div>
+        <div class="report-summary" id="rel-summary"></div>
+        <div class="section-title">Animais no Período (por data de origem)</div>
+        <div class="report-table" id="rel-table"></div>
+        <div class="report-share">
+          <button class="report-share-btn" style="background:var(--surface3);color:var(--text)" onclick="exportRelatorioCsv()">⇩ Exportar CSV</button>
+          <button class="report-share-btn" style="background:var(--accent);color:#06210c" onclick="window.print()">🖶 Imprimir</button>
+        </div>
+      </div>
+
+      <!-- TAB: AJUSTES -->
+      <div id="tab-ajust" class="hidden">
+        <div class="settings-section">
+          <h3>Conexão com Google Sheets</h3>
+          <div class="settings-item">
+            <div class="field" style="margin-bottom:10px">
+              <label>URL do Web App (Apps Script)</label>
+              <input type="text" id="cfg-url" placeholder="https://script.google.com/macros/s/AKfycb.../exec">
+            </div>
+            <div class="field" style="margin-bottom:10px">
+              <label>Token</label>
+              <input type="text" id="cfg-token" placeholder="mesmo token definido em Codigo.gs">
+            </div>
+            <button class="btn-primary" onclick="salvarConexao()">Salvar e Sincronizar</button>
+            <div id="cfg-status" style="font-size:12px;color:var(--muted);margin-top:10px;min-height:16px"></div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Sistema</h3>
+          <div class="settings-item" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="refreshData()">
+            <div><div style="font-size:14px;font-weight:500">Atualizar dados agora</div><div style="font-size:12px;color:var(--muted)" id="ajust-sync">—</div></div>
+            <span style="color:var(--accent);font-size:18px">⟳</span>
+          </div>
+          <div class="settings-item" style="cursor:pointer" onclick="logout()">
+            <div style="font-size:14px;font-weight:600;color:var(--danger)">Sair</div>
+          </div>
+        </div>
+        <div style="text-align:center;padding:16px;font-size:11px;color:var(--muted)">Ovino Castelo &bull; dados no Google Sheets &bull; v1.0.0</div>
+      </div>
+
+    </div>
+  </div><!-- /main-wrapper -->
+  </div><!-- /screen-app -->
+
+  <!-- DETALHE DO ANIMAL -->
+  <div id="screen-animal" class="hidden" style="display:none">
+    <div class="topbar">
+      <button class="topbar-back" onclick="show('screen-app')">&#8249;</button>
+      <div class="topbar-title">ANIMAL</div>
+      <div style="width:32px"></div>
+    </div>
+    <div class="content" id="animal-detail-content"></div>
+  </div>
+
+
+</div>
+
+<div id="modal-root"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+// ───────────────────────── estado & config ─────────────────────────
+var DB = { Animais:[], Tipo:[], Sexo:[], Origem:[], Destino:[], Pesos:[] };
+var currentTab = 'home';
+var currentAnimalCod = null;
+var cadAtual = 'Tipo';
+var relRows = [];
+
+function getCfg(){ try{ return JSON.parse(localStorage.getItem('ovino_cfg')||'{}'); }catch(e){ return {}; } }
+function setCfg(c){ localStorage.setItem('ovino_cfg', JSON.stringify(c)); }
+function cfgReady(){ var c=getCfg(); return !!(c.url && c.token); }
+
+// ───────────────────────── camada de dados (Google Sheets via Apps Script) ─────────────────────────
+var Sheets = {
+  list: function(sheet){
+    var cfg = getCfg();
+    var url = cfg.url + '?sheet=' + encodeURIComponent(sheet) + '&token=' + encodeURIComponent(cfg.token);
+    return fetch(url).then(function(r){ return r.json(); }).then(function(json){
+      if(!json.ok) throw new Error(json.error || 'Erro ao carregar ' + sheet);
+      return json.data;
+    });
+  },
+  create: function(sheet, data){ return Sheets._post({action:'create', sheet:sheet, data:data}); },
+  update: function(sheet, cod, data){ return Sheets._post({action:'update', sheet:sheet, cod:cod, data:data}); },
+  remove: function(sheet, cod){ return Sheets._post({action:'delete', sheet:sheet, cod:cod}); },
+  _post: function(body){
+    var cfg = getCfg();
+    body.token = cfg.token;
+    return fetch(cfg.url, { method:'POST', body: JSON.stringify(body) })
+      .then(function(r){ return r.json(); })
+      .then(function(json){
+        if(!json.ok) throw new Error(json.error || 'Erro ao salvar');
+        return json.data;
+      });
+  }
+};
+
+// ───────────────────────── utilidades ─────────────────────────
+function $(id){ return document.getElementById(id); }
+function esc(s){ return (s===undefined||s===null) ? '' : String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function fmtDate(iso){ if(!iso) return '—'; var p=String(iso).slice(0,10).split('-'); return p.length===3 ? (p[2]+'/'+p[1]+'/'+p[0]) : iso; }
+function toast(msg, isErr){
+  var t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(function(){ t.className = 'toast'; }, 2600);
+}
+function animalByCod(cod){ return DB.Animais.filter(function(a){ return String(a.Cod)===String(cod); })[0]; }
+function destinoStatusClass(destino){
+  if(destino==='Reprodução' || destino==='Reserva' || !destino) return 'status-ok';
+  if(destino==='Venda' || destino==='Corte') return 'status-low';
+  if(destino==='Morte' || destino==='Descarte') return 'status-crit';
+  return 'status-empty';
+}
+function pesosDoAnimal(cod){
+  return DB.Pesos.filter(function(p){ return String(p.AnimalCod)===String(cod); })
+    .sort(function(a,b){ return String(a.Data).localeCompare(String(b.Data)); });
+}
+function ultimoPeso(cod){ var l = pesosDoAnimal(cod); return l.length ? l[l.length-1] : null; }
+
+// ───────────────────────── navegação ─────────────────────────
+function show(id){
+  ['screen-splash','screen-login','screen-app','screen-animal'].forEach(function(s){
+    var el = $(s);
+    if(el){ el.classList.add('hidden'); el.style.display = 'none'; }
+  });
+  var navbar = $('main-navbar');
+  var appScreens = ['screen-app','screen-animal'];
+  if(navbar) navbar.style.display = appScreens.indexOf(id) >= 0 ? '' : 'none';
+  var t = $(id);
+  if(t){
+    t.classList.remove('hidden');
+    t.style.display = (id==='screen-login' || id==='screen-splash') ? 'flex' : 'flex';
+    t.style.flexDirection = 'column';
+    if(id==='screen-app'){ t.style.height='100%'; t.style.flex='1'; }
+    if(id==='screen-animal'){ t.style.height='100%'; t.style.flex='1'; }
+  }
+  if(id==='screen-app') switchTab(currentTab);
+}
+
+function switchTab(tab){
+  ['home','animais','lanc','cad','rel','ajust'].forEach(function(t){
+    var el = $('tab-'+t), nav = $('nav-'+t);
+    if(el){ el.classList.add('hidden'); el.style.display='none'; }
+    if(nav) nav.classList.remove('active');
+  });
+  var sel = $('tab-'+tab), nav = $('nav-'+tab);
+  if(sel){ sel.classList.remove('hidden'); sel.style.display='block'; }
+  if(nav) nav.classList.add('active');
+  var titles = {home:'DASHBOARD', animais:'ANIMAIS', lanc:'LANÇAMENTOS', cad:'CADASTROS', rel:'RELATÓRIO', ajust:'AJUSTES'};
+  $('topbar-title').textContent = titles[tab] || '';
+  currentTab = tab;
+  if(tab==='home') renderDashboard();
+  if(tab==='animais') { populateFiltros(); renderAnimaisList(); }
+  if(tab==='cad') renderCadastros();
+  if(tab==='rel') { populateRelFiltros(); }
+  if(tab==='ajust') loadAjustesForm();
+}
+
+// ───────────────────────── login / logout ─────────────────────────
+function doLogin(){
+  var nome = $('nome-input').value.trim();
+  if(!nome){ alert('Digite seu nome.'); return; }
+  localStorage.setItem('ovino_user', nome);
+  $('dash-greeting').textContent = 'Olá, ' + nome + '.';
+  $('avatar').textContent = nome.slice(0,2).toUpperCase();
+  show('screen-app');
+  if(cfgReady()){
+    refreshData();
+  } else {
+    $('dash-sync').textContent = 'Conecte sua planilha em Ajustes para carregar os dados.';
+    switchTab('ajust');
+  }
+}
+function logout(){
+  show('screen-splash');
+}
+
+// ───────────────────────── carga de dados ─────────────────────────
+function refreshData(){
+  if(!cfgReady()){ toast('Configure a URL e o Token em Ajustes primeiro.', true); switchTab('ajust'); return; }
+  $('dash-sync').textContent = 'Sincronizando...';
+  var sheets = ['Animais','Tipo','Sexo','Origem','Destino','Pesos'];
+  Promise.all(sheets.map(function(s){ return Sheets.list(s); }))
+    .then(function(results){
+      DB = { Animais:results[0], Tipo:results[1], Sexo:results[2], Origem:results[3], Destino:results[4], Pesos:results[5] };
+      localStorage.setItem('ovino_cache', JSON.stringify(DB));
+      var now = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+      $('dash-sync').textContent = 'Atualizado às ' + now + ' — ' + DB.Animais.length + ' animais';
+      $('ajust-sync').textContent = 'Última sincronização: ' + now;
+      toast('Dados atualizados.');
+      renderAll();
+    })
+    .catch(function(err){
+      var cached = localStorage.getItem('ovino_cache');
+      if(cached){ DB = JSON.parse(cached); $('dash-sync').textContent = 'Offline — usando última cópia local'; renderAll(); }
+      else $('dash-sync').textContent = 'Erro: ' + err.message;
+      toast('Erro ao sincronizar: ' + err.message, true);
+    });
+}
+function renderAll(){
+  populateFiltros();
+  populateRelFiltros();
+  if(currentTab==='home') renderDashboard();
+  if(currentTab==='animais') renderAnimaisList();
+  if(currentTab==='cad') renderCadastros();
+}
+
+// ───────────────────────── dashboard ─────────────────────────
+function renderDashboard(){
+  var animais = DB.Animais;
+  var total = animais.length;
+  var femeas = animais.filter(function(a){ return a.Sexo==='feminino'; }).length;
+  var machos = animais.filter(function(a){ return a.Sexo==='masculino'; }).length;
+  $('m-total').textContent = total || '—';
+  $('m-femeas').textContent = femeas;
+  $('m-machos').textContent = machos;
+
+  var pesosRecentes = [];
+  animais.forEach(function(a){ var p = ultimoPeso(a.Cod); if(p) pesosRecentes.push(parseFloat(p.Peso)); });
+  $('m-peso').textContent = pesosRecentes.length ? (pesosRecentes.reduce(function(a,b){return a+b;},0)/pesosRecentes.length).toFixed(1)+' kg' : '—';
+
+  var ym = todayISO().slice(0,7);
+  var nasc = animais.filter(function(a){ return a.Origem==='Nascimento' && String(a.DataOrigem).slice(0,7)===ym; }).length;
+  var mortes = animais.filter(function(a){ return a.Destino==='Morte' && String(a.DataDestino).slice(0,7)===ym; }).length;
+  $('m-nasc').textContent = nasc;
+  $('m-mortes').textContent = mortes;
+
+  var porTipo = {};
+  animais.forEach(function(a){ var t=a.Tipo||'(sem tipo)'; porTipo[t]=(porTipo[t]||0)+1; });
+  var distHtml = '';
+  Object.keys(porTipo).sort(function(a,b){return porTipo[b]-porTipo[a];}).forEach(function(t){
+    var pct = total ? Math.round(porTipo[t]/total*100) : 0;
+    distHtml += '<div class="compliance-row"><div class="compliance-name">'+esc(t)+'</div>'+
+      '<div class="compliance-track"><div class="compliance-fill" style="width:'+pct+'%"></div></div>'+
+      '<div class="compliance-pct">'+porTipo[t]+' ('+pct+'%)</div></div>';
+  });
+  $('dist-tipo').innerHTML = distHtml || '<div style="padding:8px 0;color:var(--muted);font-size:13px">Sem animais cadastrados.</div>';
+
+  var ativos = animais.filter(function(a){ return a.Destino==='Reprodução' || a.Destino==='Reserva' || !a.Destino; });
+  var limite = new Date(); limite.setDate(limite.getDate()-90);
+  var limiteIso = limite.toISOString().slice(0,10);
+  var semPesagem = ativos.filter(function(a){
+    var p = ultimoPeso(a.Cod);
+    return !p || String(p.Data) < limiteIso;
+  }).slice(0,8);
+  var tHtml = '';
+  semPesagem.forEach(function(a){
+    var p = ultimoPeso(a.Cod);
+    tHtml += '<div class="task-item" onclick="openAnimal(\''+a.Cod+'\')"><div class="task-dot warn"></div>'+
+      '<div class="task-info"><div class="task-name">#'+esc(a.Cod)+' '+esc(a.Brinco||'')+' — '+esc(a.Tipo||'')+'</div>'+
+      '<div class="task-sub">'+(p ? 'Última pesagem em '+fmtDate(p.Data) : 'Nunca pesado')+'</div></div></div>';
+  });
+  $('tasks-list').innerHTML = tHtml || '<div style="padding:8px 16px;color:var(--muted);font-size:13px">Tudo em dia.</div>';
+}
+
+// ───────────────────────── animais: lista ─────────────────────────
+function populateFiltros(){
+  fillSelect($('filtro-sexo'), DB.Sexo.map(function(s){return s.Descr;}), 'Todos os sexos');
+  fillSelect($('filtro-tipo'), DB.Tipo.map(function(t){return t.Descr;}), 'Todos os tipos');
+  fillSelect($('filtro-destino'), DB.Destino.map(function(d){return d.Descr;}), 'Todos os destinos');
+}
+function fillSelect(sel, options, placeholder){
+  if(!sel) return;
+  var current = sel.value;
+  sel.innerHTML = '<option value="">'+placeholder+'</option>' +
+    options.filter(Boolean).map(function(o){ return '<option value="'+esc(o)+'">'+esc(o)+'</option>'; }).join('');
+  sel.value = current;
+}
+
+function renderAnimaisList(){
+  var q = ($('search-input') ? $('search-input').value : '').trim().toLowerCase();
+  var fSexo = $('filtro-sexo') ? $('filtro-sexo').value : '';
+  var fTipo = $('filtro-tipo') ? $('filtro-tipo').value : '';
+  var fDestino = $('filtro-destino') ? $('filtro-destino').value : '';
+
+  var list = DB.Animais.filter(function(a){
+    if(fSexo && a.Sexo!==fSexo) return false;
+    if(fTipo && a.Tipo!==fTipo) return false;
+    if(fDestino && a.Destino!==fDestino) return false;
+    if(q){
+      var hay = (String(a.Cod)+' '+(a.Brinco||'')+' '+(a.Orelha||'')+' '+(a.Rabo||'')).toLowerCase();
+      if(hay.indexOf(q)===-1) return false;
+    }
+    return true;
+  }).sort(function(a,b){ return parseInt(b.Cod)-parseInt(a.Cod); });
+
+  var html = list.map(function(a){
+    return '<div class="animal-item" onclick="openAnimal(\''+a.Cod+'\')">'+
+      '<div class="animal-header"><div class="animal-id">#'+esc(a.Cod)+(a.Brinco?' · '+esc(a.Brinco):'')+'</div>'+
+      '<div class="animal-status '+destinoStatusClass(a.Destino)+'">'+esc(a.Destino||'Ativo')+'</div></div>'+
+      '<div class="animal-meta">'+esc(a.Tipo||'—')+' · '+esc(a.Sexo||'—')+' · origem '+fmtDate(a.DataOrigem)+'</div></div>';
+  }).join('');
+  $('animais-list').innerHTML = html || '<div style="padding:40px 16px;text-align:center;color:var(--muted);font-size:13px">Nenhum animal encontrado.</div>';
+}
+
+function openNovoAnimalModal(){
+  var body =
+    '<div class="field-row">'+
+      '<div class="field"><label>Sexo</label><select id="f-sexo">'+optsFromList(DB.Sexo.map(function(s){return s.Descr;}))+'</select></div>'+
+      '<div class="field"><label>Tipo</label><select id="f-tipo">'+optsFromList(DB.Tipo.map(function(t){return t.Descr;}))+'</select></div>'+
+    '</div>'+
+    '<div class="field-row">'+
+      '<div class="field"><label>Origem</label><select id="f-origem">'+optsFromList(DB.Origem.map(function(o){return o.Descr;}))+'</select></div>'+
+      '<div class="field"><label>Data de origem</label><input type="date" id="f-dataor" value="'+todayISO()+'"></div>'+
+    '</div>'+
+    '<div class="field-row">'+
+      '<div class="field"><label>Brinco</label><input id="f-brinco"></div>'+
+      '<div class="field"><label>Orelha</label><input id="f-orelha"></div>'+
+    '</div>'+
+    '<div class="field"><label>Destino</label><select id="f-destino">'+optsFromList(DB.Destino.map(function(d){return d.Descr;}))+'</select></div>'+
+    '<div class="field-row">'+
+      '<div class="field"><label>Mãe (código)</label><input id="f-mae" type="number"></div>'+
+      '<div class="field"><label>Pai (código)</label><input id="f-pai" type="number"></div>'+
+    '</div>'+
+    '<div class="field"><label>Observações</label><textarea id="f-obs"></textarea></div>';
+  openModal('Novo Animal', body, function(){
+    var data = {
+      Sexo:$('f-sexo').value, Tipo:$('f-tipo').value, Origem:$('f-origem').value,
+      DataOrigem:$('f-dataor').value, Brinco:$('f-brinco').value, Orelha:$('f-orelha').value,
+      Destino:$('f-destino').value, Mae:$('f-mae').value, Pai:$('f-pai').value, Obs:$('f-obs').value
+    };
+    Sheets.create('Animais', data).then(function(rec){
+      DB.Animais.push(rec); closeModal(); renderAnimaisList(); toast('Animal #'+rec.Cod+' cadastrado.');
+    }).catch(function(e){ toast('Erro: '+e.message, true); });
+  });
+}
+function optsFromList(list){
+  return list.filter(Boolean).map(function(o){ return '<option value="'+esc(o)+'">'+esc(o)+'</option>'; }).join('');
+}
+
+// ───────────────────────── detalhe do animal ─────────────────────────
+function openAnimal(cod){
+  currentAnimalCod = cod;
+  show('screen-animal');
+  renderAnimalDetail(cod);
+}
+function renderAnimalDetail(cod){
+  var a = animalByCod(cod);
+  var box = $('animal-detail-content');
+  if(!a){ box.innerHTML = '<div style="padding:24px;color:var(--muted)">Animal não encontrado.</div>'; return; }
+
+  var mae = a.Mae ? animalByCod(a.Mae) : null;
+  var pai = a.Pai ? animalByCod(a.Pai) : null;
+  var filhos = DB.Animais.filter(function(x){ return String(x.Mae)===String(a.Cod) || String(x.Pai)===String(a.Cod); });
+
+  var html = '';
+  html += '<div class="detail-hero">'+
+    '<div class="detail-badges">'+
+      '<span class="badge">'+esc(a.Tipo||'—')+'</span>'+
+      '<span class="badge">'+esc(a.Sexo||'—')+'</span>'+
+      '<span class="animal-status '+destinoStatusClass(a.Destino)+'">'+esc(a.Destino||'Ativo')+'</span>'+
+    '</div>'+
+    '<div class="detail-title">#'+esc(a.Cod)+(a.Brinco?' · Brinco '+esc(a.Brinco):'')+'</div>'+
+    '<div style="font-size:13px;color:var(--muted)">Origem: '+esc(a.Origem||'—')+' em '+fmtDate(a.DataOrigem)+(a.DataDestino?(' · Destino em '+fmtDate(a.DataDestino)):'')+'</div>'+
+    '<div class="meta-grid">'+
+      '<div class="meta-item"><div class="meta-label">Rabo</div><div class="meta-val">'+esc(a.Rabo||'—')+'</div></div>'+
+      '<div class="meta-item"><div class="meta-label">Orelha</div><div class="meta-val">'+esc(a.Orelha||'—')+'</div></div>'+
+    '</div>'+
+    (a.Obs ? '<div class="meta-item" style="margin-top:10px"><div class="meta-label">Observações</div><div class="meta-val">'+esc(a.Obs)+'</div></div>' : '')+
+  '</div>';
+
+  html += '<div class="section-title">Genealogia</div><div class="genea-grid">'+
+    (mae ? '<div class="genea-card" onclick="openAnimal(\''+mae.Cod+'\')"><div class="genea-label">Mãe</div><div class="genea-val">#'+esc(mae.Cod)+' '+esc(mae.Brinco||'')+'</div></div>'
+         : '<div class="genea-card empty"><div class="genea-label">Mãe</div><div class="genea-val">'+(a.Mae?('#'+esc(a.Mae)+' (não encontrada)'):'—')+'</div></div>')+
+    (pai ? '<div class="genea-card" onclick="openAnimal(\''+pai.Cod+'\')"><div class="genea-label">Pai</div><div class="genea-val">#'+esc(pai.Cod)+' '+esc(pai.Brinco||'')+'</div></div>'
+         : '<div class="genea-card empty"><div class="genea-label">Pai</div><div class="genea-val">'+(a.Pai?('#'+esc(a.Pai)+' (não encontrado)'):'—')+'</div></div>')+
+  '</div>';
+  if(filhos.length){
+    html += '<div style="padding:10px 16px 0;display:flex;flex-wrap:wrap;gap:6px">' + filhos.map(function(f){
+      return '<span class="badge" style="cursor:pointer" onclick="openAnimal(\''+f.Cod+'\')">#'+esc(f.Cod)+' '+esc(f.Brinco||'')+'</span>';
+    }).join('') + '</div>';
+  }
+
+  html += '<div class="section-title">Pesagens <button class="icon-btn" style="color:var(--accent)" onclick="openNovaPesagemModal(\''+a.Cod+'\')">+ Nova</button></div>';
+  var pesos = pesosDoAnimal(a.Cod);
+  if(pesos.length){
+    html += '<div class="chart-box"><canvas id="peso-chart"></canvas></div>';
+    html += pesos.slice().reverse().map(function(p){
+      return '<div class="peso-row"><span>'+fmtDate(p.Data)+'</span><span class="p-val">'+esc(p.Peso)+' kg</span></div>';
+    }).join('');
+  } else {
+    html += '<div style="padding:0 16px 8px;color:var(--muted);font-size:13px">Nenhuma pesagem registrada.</div>';
+  }
+
+  html += '<div class="section-title">Editar Cadastro</div>';
+  html += '<div style="padding:0 16px" class="modal-body">'+
+    '<div class="field-row">'+
+      '<div class="field"><label>Tipo</label><select id="e-tipo">'+optsSelected(DB.Tipo.map(function(t){return t.Descr;}), a.Tipo)+'</select></div>'+
+      '<div class="field"><label>Sexo</label><select id="e-sexo">'+optsSelected(DB.Sexo.map(function(s){return s.Descr;}), a.Sexo)+'</select></div>'+
+    '</div>'+
+    '<div class="field-row">'+
+      '<div class="field"><label>Origem</label><select id="e-origem">'+optsSelected(DB.Origem.map(function(o){return o.Descr;}), a.Origem)+'</select></div>'+
+      '<div class="field"><label>Data origem</label><input type="date" id="e-dataor" value="'+esc(a.DataOrigem)+'"></div>'+
+    '</div>'+
+    '<div class="field-row">'+
+      '<div class="field"><label>Destino</label><select id="e-destino">'+optsSelected(DB.Destino.map(function(d){return d.Descr;}), a.Destino)+'</select></div>'+
+      '<div class="field"><label>Data destino</label><input type="date" id="e-datade" value="'+esc(a.DataDestino)+'"></div>'+
+    '</div>'+
+    '<div class="field-row-3">'+
+      '<div class="field"><label>Brinco</label><input id="e-brinco" value="'+esc(a.Brinco)+'"></div>'+
+      '<div class="field"><label>Rabo</label><input id="e-rabo" value="'+esc(a.Rabo)+'"></div>'+
+      '<div class="field"><label>Orelha</label><input id="e-orelha" value="'+esc(a.Orelha)+'"></div>'+
+    '</div>'+
+    '<div class="field-row">'+
+      '<div class="field"><label>Mãe (código)</label><input id="e-mae" type="number" value="'+esc(a.Mae)+'"></div>'+
+      '<div class="field"><label>Pai (código)</label><input id="e-pai" type="number" value="'+esc(a.Pai)+'"></div>'+
+    '</div>'+
+    '<div class="field"><label>Observações</label><textarea id="e-obs">'+esc(a.Obs)+'</textarea></div>'+
+    '<div class="modal-actions">'+
+      '<button class="btn-primary" onclick="saveAnimalEdit(\''+a.Cod+'\')">Salvar alterações</button>'+
+    '</div>'+
+    '<div class="modal-actions">'+
+      '<button class="btn-danger" style="width:100%" onclick="deleteAnimal(\''+a.Cod+'\')">Excluir animal</button>'+
+    '</div>'+
+  '</div><div style="height:16px"></div>';
+
+  box.innerHTML = html;
+
+  if(pesos.length && window.Chart){
+    var ctx = $('peso-chart').getContext('2d');
+    if(window._pesoChart) window._pesoChart.destroy();
+    window._pesoChart = new Chart(ctx, {
+      type:'line',
+      data:{ labels: pesos.map(function(p){return fmtDate(p.Data);}),
+        datasets:[{ data: pesos.map(function(p){return parseFloat(p.Peso);}), borderColor:'#8fd694', backgroundColor:'rgba(143,214,148,.15)', tension:.3, fill:true, pointRadius:3 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+        scales:{ x:{ ticks:{color:'#7c8a78', font:{size:10}}, grid:{color:'rgba(255,255,255,.05)'} },
+                 y:{ ticks:{color:'#7c8a78', font:{size:10}}, grid:{color:'rgba(255,255,255,.05)'} } } }
+    });
+  }
+}
+function optsSelected(list, current){
+  return list.filter(Boolean).map(function(o){
+    return '<option value="'+esc(o)+'"'+(o===current?' selected':'')+'>'+esc(o)+'</option>';
+  }).join('');
+}
+
+function saveAnimalEdit(cod){
+  var data = {
+    Tipo:$('e-tipo').value, Sexo:$('e-sexo').value, Origem:$('e-origem').value, DataOrigem:$('e-dataor').value,
+    Destino:$('e-destino').value, DataDestino:$('e-datade').value, Brinco:$('e-brinco').value,
+    Rabo:$('e-rabo').value, Orelha:$('e-orelha').value, Mae:$('e-mae').value, Pai:$('e-pai').value, Obs:$('e-obs').value
+  };
+  Sheets.update('Animais', cod, data).then(function(rec){
+    var idx = DB.Animais.findIndex(function(a){ return String(a.Cod)===String(cod); });
+    if(idx>=0) DB.Animais[idx] = rec;
+    toast('Animal #'+cod+' atualizado.');
+    renderAnimalDetail(cod);
+  }).catch(function(e){ toast('Erro: '+e.message, true); });
+}
+function deleteAnimal(cod){
+  if(!confirm('Excluir o animal #'+cod+'? Esta ação não pode ser desfeita.')) return;
+  Sheets.remove('Animais', cod).then(function(){
+    DB.Animais = DB.Animais.filter(function(a){ return String(a.Cod)!==String(cod); });
+    toast('Animal #'+cod+' excluído.');
+    show('screen-app'); switchTab('animais');
+  }).catch(function(e){ toast('Erro: '+e.message, true); });
+}
+
+function openNovaPesagemModal(cod){
+  var body = '<div class="field-row">'+
+    '<div class="field"><label>Data</label><input type="date" id="p-data" value="'+todayISO()+'"></div>'+
+    '<div class="field"><label>Peso (kg)</label><input type="number" step="0.1" id="p-peso"></div>'+
+  '</div>';
+  openModal('Nova Pesagem — Animal #'+cod, body, function(){
+    var peso = $('p-peso').value;
+    if(!peso){ toast('Informe o peso.', true); return; }
+    // envia como número (não string) para não depender de vírgula/ponto decimal
+    // conforme o idioma configurado na planilha
+    Sheets.create('Pesos', { AnimalCod:cod, Data:$('p-data').value, Peso:parseFloat(peso) }).then(function(rec){
+      DB.Pesos.push(rec); closeModal(); toast('Pesagem registrada.'); renderAnimalDetail(cod);
+    }).catch(function(e){ toast('Erro: '+e.message, true); });
+  });
+}
+
+// ───────────────────────── seletor de animal (para lançamentos) ─────────────────────────
+function animalPickerField(inputId, resultsId, filterFn){
+  return '<div class="field"><label>Buscar animal (código, brinco ou orelha)</label>'+
+    '<input id="'+inputId+'" oninput="renderPickResults(\''+inputId+'\',\''+resultsId+'\')" placeholder="digite para buscar...">'+
+    '<div class="pick-results" id="'+resultsId+'"></div></div>';
+}
+var pickFilterFns = {};
+var pickSelected = {};
+function renderPickResults(inputId, resultsId){
+  var q = $(inputId).value.trim().toLowerCase();
+  var box = $(resultsId);
+  if(!q){ box.innerHTML=''; return; }
+  var fn = pickFilterFns[resultsId] || function(){ return true; };
+  var list = DB.Animais.filter(fn).filter(function(a){
+    var hay = (String(a.Cod)+' '+(a.Brinco||'')+' '+(a.Orelha||'')).toLowerCase();
+    return hay.indexOf(q)!==-1;
+  }).slice(0,8);
+  box.innerHTML = list.map(function(a){
+    return '<div class="pick-item" onclick="selectPick(\''+resultsId+'\',\''+a.Cod+'\',\''+inputId+'\')">#'+esc(a.Cod)+' '+esc(a.Brinco||'')+' — '+esc(a.Tipo||'')+' · '+esc(a.Sexo||'')+'</div>';
+  }).join('') || '<div style="font-size:12px;color:var(--muted)">Nenhum resultado.</div>';
+}
+function selectPick(resultsId, cod, inputId){
+  pickSelected[resultsId] = cod;
+  var a = animalByCod(cod);
+  $(inputId).value = '#'+cod+' '+(a.Brinco||'');
+  $(resultsId).innerHTML = '';
+}
+
+// ───────────────────────── lançamentos ─────────────────────────
+function openNascimentoModal(){
+  var femeas = function(a){ return a.Sexo==='feminino'; };
+  var machos = function(a){ return a.Sexo==='masculino'; };
+  pickFilterFns['pick-mae'] = femeas;
+  pickFilterFns['pick-pai'] = machos;
+  pickSelected['pick-mae'] = null; pickSelected['pick-pai'] = null;
+
+  var body =
+    animalPickerField('in-mae','pick-mae', femeas) +
+    animalPickerField('in-pai','pick-pai', machos) +
+    '<div class="field-row">'+
+      '<div class="field"><label>Sexo da cria</label><select id="n-sexo" onchange="atualizaTipoNascimento()">'+optsFromList(DB.Sexo.map(function(s){return s.Descr;}))+'</select></div>'+
+      '<div class="field"><label>Tipo</label><select id="n-tipo">'+optsFromList(DB.Tipo.map(function(t){return t.Descr;}))+'</select></div>'+
+    '</div>'+
+    '<div class="field-row">'+
+      '<div class="field"><label>Data de nascimento</label><input type="date" id="n-data" value="'+todayISO()+'"></div>'+
+      '<div class="field"><label>Destino inicial</label><select id="n-destino">'+optsFromList(DB.Destino.map(function(d){return d.Descr;}))+'</select></div>'+
+    '</div>'+
+    '<div class="field-row">'+
+      '<div class="field"><label>Brinco</label><input id="n-brinco"></div>'+
+      '<div class="field"><label>Orelha</label><input id="n-orelha"></div>'+
+    '</div>'+
+    '<div class="field"><label>Observações</label><textarea id="n-obs"></textarea></div>';
+
+  openModal('Registrar Nascimento', body, function(){
+    var mae = pickSelected['pick-mae'], pai = pickSelected['pick-pai'];
+    if(!mae){ toast('Selecione a mãe.', true); return; }
+    var data = {
+      Origem:'Nascimento', DataOrigem:$('n-data').value, Sexo:$('n-sexo').value, Tipo:$('n-tipo').value,
+      Destino:$('n-destino').value, Brinco:$('n-brinco').value, Orelha:$('n-orelha').value,
+      Mae:mae, Pai:pai||'', Obs:$('n-obs').value
+    };
+    Sheets.create('Animais', data).then(function(rec){
+      DB.Animais.push(rec); closeModal(); toast('Nascimento registrado — animal #'+rec.Cod+'.');
+      if(currentTab==='animais') renderAnimaisList();
+    }).catch(function(e){ toast('Erro: '+e.message, true); });
+  });
+  atualizaTipoNascimento();
+}
+function atualizaTipoNascimento(){
+  var sexo = $('n-sexo') ? $('n-sexo').value : '';
+  var sugestoes = DB.Tipo.filter(function(t){ return t.Sexo===sexo; }).map(function(t){ return t.Descr; });
+  if($('n-tipo')) fillOptionsPreserving($('n-tipo'), DB.Tipo.map(function(t){return t.Descr;}), sugestoes[0]);
+}
+function fillOptionsPreserving(sel, all, preferred){
+  sel.innerHTML = optsFromList(all);
+  if(preferred) sel.value = preferred;
+}
+
+function openDesmamaModal(){
+  var filtro = function(a){ return a.Tipo==='Borrego' || a.Tipo==='Borrega'; };
+  pickFilterFns['pick-desmama'] = filtro;
+  pickSelected['pick-desmama'] = null;
+  var body = animalPickerField('in-desmama','pick-desmama', filtro) +
+    '<div class="field"><label>Nova categoria (Tipo)</label><select id="d-tipo">'+optsFromList(DB.Tipo.map(function(t){return t.Descr;}))+'</select></div>';
+  openModal('Registrar Desmama', body, function(){
+    var cod = pickSelected['pick-desmama'];
+    if(!cod){ toast('Selecione o animal.', true); return; }
+    Sheets.update('Animais', cod, { Tipo:$('d-tipo').value }).then(function(rec){
+      var idx = DB.Animais.findIndex(function(a){ return String(a.Cod)===String(cod); });
+      if(idx>=0) DB.Animais[idx] = rec;
+      closeModal(); toast('Desmama registrada para #'+cod+'.');
+      if(currentTab==='animais') renderAnimaisList();
+    }).catch(function(e){ toast('Erro: '+e.message, true); });
+  });
+}
+
+function openMorteModal(){
+  var filtro = function(a){ return a.Destino!=='Morte'; };
+  pickFilterFns['pick-morte'] = filtro;
+  pickSelected['pick-morte'] = null;
+  var body = animalPickerField('in-morte','pick-morte', filtro) +
+    '<div class="field"><label>Data</label><input type="date" id="mo-data" value="'+todayISO()+'"></div>'+
+    '<div class="field"><label>Motivo / observações</label><textarea id="mo-obs"></textarea></div>';
+  openModal('Registrar Morte', body, function(){
+    var cod = pickSelected['pick-morte'];
+    if(!cod){ toast('Selecione o animal.', true); return; }
+    var a = animalByCod(cod);
+    var obs = (a.Obs ? a.Obs+' ' : '') + ($('mo-obs').value || '');
+    Sheets.update('Animais', cod, { Destino:'Morte', DataDestino:$('mo-data').value, Obs:obs }).then(function(rec){
+      var idx = DB.Animais.findIndex(function(x){ return String(x.Cod)===String(cod); });
+      if(idx>=0) DB.Animais[idx] = rec;
+      closeModal(); toast('Óbito registrado para #'+cod+'.');
+      if(currentTab==='animais') renderAnimaisList();
+    }).catch(function(e){ toast('Erro: '+e.message, true); });
+  });
+}
+
+// ───────────────────────── cadastros (Tipo/Sexo/Origem/Destino) ─────────────────────────
+function renderCadastros(){
+  var sheets = ['Tipo','Sexo','Origem','Destino'];
+  $('cad-pills').innerHTML = sheets.map(function(s){
+    return '<div class="pill '+(s===cadAtual?'active':'')+'" onclick="switchCadastroTab(\''+s+'\')">'+s+'</div>';
+  }).join('');
+  var list = DB[cadAtual] || [];
+  $('cad-list').innerHTML = list.map(function(item){
+    var sub = item.Sexo ? item.Sexo : (item.Descricao ? item.Descricao.slice(0,60) : '');
+    return '<div class="cad-item">'+
+      '<div><div class="cad-item-name">'+esc(item.Descr)+'</div>'+(sub?'<div class="cad-item-desc">'+esc(sub)+'</div>':'')+'</div>'+
+      '<button class="icon-btn" onclick=\'openCadastroModal('+JSON.stringify(item).replace(/'/g,'&#39;')+')\'>✎</button>'+
+      '<button class="icon-btn" onclick="deleteCadastroItem(\''+item.Cod+'\')">🗑</button>'+
+    '</div>';
+  }).join('') || '<div style="padding:20px 16px;color:var(--muted);font-size:13px">Nenhum item cadastrado.</div>';
+}
+function switchCadastroTab(s){ cadAtual = s; renderCadastros(); }
+
+function openCadastroModal(item){
+  var isTipo = cadAtual==='Tipo';
+  var hasDescricao = cadAtual!=='Sexo'; // a aba Sexo não tem coluna Descricao
+  var body = '<div class="field"><label>Descrição</label><input id="c-descr" value="'+esc(item?item.Descr:'')+'"></div>'+
+    (isTipo ? '<div class="field"><label>Sexo</label><select id="c-sexo">'+optsSelected(DB.Sexo.map(function(s){return s.Descr;}), item?item.Sexo:'')+'</select></div>' : '')+
+    (hasDescricao ? '<div class="field"><label>Descrição longa</label><textarea id="c-desclonga">'+esc(item?item.Descricao:'')+'</textarea></div>' : '');
+  openModal((item?'Editar':'Novo') + ' — ' + cadAtual, body, function(){
+    var data = { Descr:$('c-descr').value };
+    if(hasDescricao) data.Descricao = $('c-desclonga').value;
+    if(isTipo) data.Sexo = $('c-sexo').value;
+    var p = item ? Sheets.update(cadAtual, item.Cod, data) : Sheets.create(cadAtual, data);
+    p.then(function(rec){
+      if(item){
+        var idx = DB[cadAtual].findIndex(function(x){ return String(x.Cod)===String(item.Cod); });
+        if(idx>=0) DB[cadAtual][idx] = rec;
+      } else DB[cadAtual].push(rec);
+      closeModal(); renderCadastros(); populateFiltros(); populateRelFiltros();
+      toast('Salvo.');
+    }).catch(function(e){ toast('Erro: '+e.message, true); });
+  });
+}
+function deleteCadastroItem(cod){
+  if(!confirm('Excluir este item de ' + cadAtual + '?')) return;
+  Sheets.remove(cadAtual, cod).then(function(){
+    DB[cadAtual] = DB[cadAtual].filter(function(x){ return String(x.Cod)!==String(cod); });
+    renderCadastros(); populateFiltros(); populateRelFiltros();
+    toast('Excluído.');
+  }).catch(function(e){ toast('Erro: '+e.message, true); });
+}
+
+// ───────────────────────── relatório ─────────────────────────
+function populateRelFiltros(){
+  fillSelect($('rel-tipo'), DB.Tipo.map(function(t){return t.Descr;}), 'Todos os tipos');
+  fillSelect($('rel-destino'), DB.Destino.map(function(d){return d.Descr;}), 'Todos os destinos');
+}
+function gerarRelatorio(){
+  var de = $('rel-de').value, ate = $('rel-ate').value;
+  var tipo = $('rel-tipo').value, destino = $('rel-destino').value;
+  relRows = DB.Animais.filter(function(a){
+    if(de && String(a.DataOrigem) < de) return false;
+    if(ate && String(a.DataOrigem) > ate) return false;
+    if(tipo && a.Tipo!==tipo) return false;
+    if(destino && a.Destino!==destino) return false;
+    return true;
+  });
+  var total = relRows.length;
+  var femeas = relRows.filter(function(a){return a.Sexo==='feminino';}).length;
+  var machos = relRows.filter(function(a){return a.Sexo==='masculino';}).length;
+  var nasc = relRows.filter(function(a){return a.Origem==='Nascimento';}).length;
+  var mortes = relRows.filter(function(a){return a.Destino==='Morte';}).length;
+  var pesos = []; relRows.forEach(function(a){ var p=ultimoPeso(a.Cod); if(p) pesos.push(parseFloat(p.Peso)); });
+  var pesoMedio = pesos.length ? (pesos.reduce(function(x,y){return x+y;},0)/pesos.length).toFixed(1) : '—';
+
+  var cards = [
+    ['Total', total], ['Fêmeas', femeas], ['Machos', machos],
+    ['Nascimentos', nasc], ['Mortes', mortes], ['Peso méd.', pesoMedio]
+  ];
+  $('rel-summary').innerHTML = cards.map(function(c){
+    return '<div class="report-summary-card"><div class="report-summary-val">'+c[1]+'</div><div class="report-summary-lbl">'+c[0]+'</div></div>';
+  }).join('');
+
+  $('rel-table').innerHTML = relRows.map(function(a){
+    return '<div class="report-row">'+
+      '<div><div class="report-row-id">#'+esc(a.Cod)+' '+esc(a.Brinco||'')+'</div><div class="report-row-sub">'+esc(a.Tipo||'')+' · '+esc(a.Sexo||'')+'</div></div>'+
+      '<div style="font-size:12px;color:var(--muted)">'+fmtDate(a.DataOrigem)+'</div>'+
+      '<div class="animal-status '+destinoStatusClass(a.Destino)+'">'+esc(a.Destino||'Ativo')+'</div>'+
+    '</div>';
+  }).join('') || '<div style="padding:16px;color:var(--muted);font-size:13px">Nenhum animal no período/filtro selecionado.</div>';
+}
+function exportRelatorioCsv(){
+  if(!relRows.length){ toast('Gere o relatório antes de exportar.', true); return; }
+  var headers = ['Cod','Tipo','Sexo','Origem','DataOrigem','Destino','DataDestino','Brinco','Orelha'];
+  var lines = [headers.join(';')];
+  relRows.forEach(function(a){
+    lines.push(headers.map(function(h){ return '"'+String(a[h]||'').replace(/"/g,'""')+'"'; }).join(';'));
+  });
+  var blob = new Blob(['﻿'+lines.join('\r\n')], {type:'text/csv;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var link = document.createElement('a');
+  link.href = url; link.download = 'relatorio-ovino-'+todayISO()+'.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// ───────────────────────── ajustes ─────────────────────────
+function loadAjustesForm(){
+  var cfg = getCfg();
+  $('cfg-url').value = cfg.url || '';
+  $('cfg-token').value = cfg.token || '';
+  $('cfg-status').textContent = cfgReady() ? 'Conectado.' : 'Ainda não configurado.';
+}
+function salvarConexao(){
+  var url = $('cfg-url').value.trim(), token = $('cfg-token').value.trim();
+  if(!url || !token){ toast('Preencha a URL e o Token.', true); return; }
+  setCfg({ url:url, token:token });
+  $('cfg-status').textContent = 'Salvo. Sincronizando...';
+  refreshData();
+}
+
+// ───────────────────────── modal genérico ─────────────────────────
+function openModal(title, bodyHtml, onSave){
+  var html = '<div class="modal-overlay" onclick="if(event.target===this) closeModal()">'+
+    '<div class="modal-card">'+
+      '<div class="modal-title">'+esc(title)+'</div>'+
+      '<div class="modal-body">'+bodyHtml+'</div>'+
+      '<div class="modal-actions">'+
+        '<button class="btn-primary" id="modal-save-btn">Salvar</button>'+
+        '<button class="btn-secondary" onclick="closeModal()">Cancelar</button>'+
+      '</div>'+
+    '</div></div>';
+  $('modal-root').innerHTML = html;
+  $('modal-save-btn').onclick = onSave;
+}
+function closeModal(){ $('modal-root').innerHTML = ''; }
+
+// ───────────────────────── inicialização ─────────────────────────
+document.addEventListener('DOMContentLoaded', function(){
+  var user = localStorage.getItem('ovino_user');
+  if(user){
+    $('nome-input').value = user;
+    $('dash-greeting').textContent = 'Olá, ' + user + '.';
+    $('avatar').textContent = user.slice(0,2).toUpperCase();
+  }
+  var cached = localStorage.getItem('ovino_cache');
+  if(cached){ try{ DB = JSON.parse(cached); }catch(e){} }
+  var de = $('rel-de'); if(de) de.value = new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10);
+  var ate = $('rel-ate'); if(ate) ate.value = todayISO();
+});
+</script>
+</body>
+</html>

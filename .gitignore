@@ -1,0 +1,6 @@
+# Segredos e dados privados — nunca sobem para o repositório público
+Codigo.gs
+SETUP.md
+export/
+*.gsheet
+desktop.ini
