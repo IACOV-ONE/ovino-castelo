@@ -45,7 +45,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);display:flex
 .login-header p{font-size:13px;color:var(--muted);margin-top:4px}
 .field{display:flex;flex-direction:column;gap:6px}
 .field label{font-size:12px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
-.field input,.field select,.field textarea{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;transition:border .2s;-webkit-appearance:none;color-scheme:dark;width:100%}
+.field input,.field select,.field textarea{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;transition:border .2s;-webkit-appearance:none;appearance:none;color-scheme:dark;width:100%}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
 .field textarea{resize:vertical;min-height:70px}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -98,7 +98,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);display:flex
 .search-bar input{background:transparent;border:none;color:var(--text);font-family:var(--font);font-size:14px;flex:1;outline:none}
 .search-icon{color:var(--muted);font-size:16px}
 .filter-row{display:flex;gap:8px;padding:0 16px 12px;overflow-x:auto}
-.filter-row select{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;color:var(--text);font-family:var(--font);font-size:12px;outline:none;-webkit-appearance:none;flex-shrink:0}
+.filter-row select{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;color:var(--text);font-family:var(--font);font-size:12px;outline:none;-webkit-appearance:none;appearance:none;flex-shrink:0}
 
 /* ANIMAL CARD */
 .animal-item{background:var(--surface);margin:0 16px 10px;border-radius:14px;border:1px solid var(--border);padding:16px;cursor:pointer;transition:border .2s}
